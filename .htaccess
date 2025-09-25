@@ -1,0 +1,193 @@
+# Apache設定ファイル（ロリポップサーバー用・改善版）
+
+# 環境変数の設定
+SetEnv ENVIRONMENT production
+
+# PHP設定（環境別）
+# 本番環境では error_reporting を制限
+<If "%{ENV:ENVIRONMENT} == 'production'">
+    php_value display_errors Off
+    php_value error_reporting "E_ERROR | E_PARSE"
+    php_value log_errors On
+    php_value error_log "logs/php_errors.log"
+</If>
+
+# 開発環境では詳細なエラー表示
+<If "%{ENV:ENVIRONMENT} == 'development'">
+    php_value display_errors On
+    php_value error_reporting E_ALL
+    php_value log_errors On
+    php_value error_log "logs/dev_errors.log"
+</If>
+
+# 文字エンコーディング設定
+php_value default_charset UTF-8
+php_value mbstring.language Japanese
+php_value mbstring.internal_encoding UTF-8
+
+# セッション設定（セキュリティ強化）
+php_value session.cookie_httponly 1
+php_value session.cookie_secure 0
+php_value session.use_strict_mode 1
+php_value session.cookie_samesite "Strict"
+php_value session.name "TANAOROSHI_SESSION"
+php_value session.gc_maxlifetime 7200
+
+# アップロードファイル設定
+php_value upload_max_filesize 10M
+php_value post_max_size 12M
+php_value max_execution_time 300
+php_value memory_limit 128M
+
+# URLリライト設定
+RewriteEngine On
+
+# API リクエストの処理
+RewriteRule ^api/(.*)$ php/api/index.php [L,QSA]
+
+# セキュリティ設定
+
+# ディレクトリリスティング無効化
+Options -Indexes -ExecCGI
+Options +FollowSymLinks
+
+# 重要ファイルへのアクセス拒否
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# 環境設定ファイルへのアクセス拒否
+<Files ".env">
+    Require all denied
+</Files>
+<Files ".env.*">
+    Require all denied
+</Files>
+
+# ログファイルへのアクセス拒否
+<Files "*.log">
+    Require all denied
+</Files>
+
+# 設定ファイルへのアクセス拒否（改善）
+<FilesMatch "(config|database)\.php$">
+    Require all denied
+</FilesMatch>
+
+# SQLファイルへのアクセス拒否
+<FilesMatch "\.(sql|sqlite|db)$">
+    Require all denied
+</FilesMatch>
+
+# バックアップファイルへのアクセス拒否
+<FilesMatch "\.(bak|backup|old|tmp|temp)$">
+    Require all denied
+</FilesMatch>
+
+# PHPファイルの直接実行を制限（クラスファイル等）
+<FilesMatch "^(DatabaseConfig|InventoryAPI|MasterDataManager)\.php$">
+    Require all denied
+</FilesMatch>
+
+# HTTPSリダイレクト（SSL証明書設定後に有効にする）
+# <If "%{ENV:ENVIRONMENT} == 'production'">
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# </If>
+
+# セキュリティヘッダー
+<IfModule mod_headers.c>
+    # XSS Protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Content Type Options
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Frame Options
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Referrer Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Content Security Policy（開発時は緩く設定）
+    <If "%{ENV:ENVIRONMENT} == 'production'">
+        Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+    </If>
+    
+    # API CORS設定（必要に応じて調整）
+    <If "%{REQUEST_URI} =~ m#^/api/#">
+        Header always set Access-Control-Allow-Origin "*"
+        Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+        Header always set Access-Control-Max-Age "86400"
+    </If>
+</IfModule>
+
+# キャッシュ設定（パフォーマンス向上）
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # 静的リソース
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    
+    # 画像ファイル
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    
+    # フォント
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    
+    # HTMLファイル（キャッシュしない）
+    ExpiresByType text/html "access plus 0 seconds"
+    
+    # APIレスポンス（キャッシュしない）
+    <If "%{REQUEST_URI} =~ m#^/api/#">
+        ExpiresDefault "access plus 0 seconds"
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+    </If>
+</IfModule>
+
+# GZIP圧縮（パフォーマンス向上）
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    
+    # 画像、動画、音声ファイルは除外（既に圧縮されているため）
+    SetEnvIfNoCase Request_URI \
+        \.(?:gif|jpe?g|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|mp3|flv|avi|wmv|au|mov|mp4|webm)$ no-gzip
+</IfModule>
+
+# ファイルサイズ制限
+LimitRequestBody 20971520
+
+# DoS攻撃対策（基本的な制限）
+<IfModule mod_evasive.c>
+    DOSHashTableSize    3097
+    DOSPageCount        5
+    DOSSiteCount        100
+    DOSPageInterval     1
+    DOSSiteInterval     1
+    DOSBlockingPeriod   600
+</IfModule>
+
+# エラーページのカスタマイズ
+ErrorDocument 403 /error/403.html
+ErrorDocument 404 /error/404.html
+ErrorDocument 500 /error/500.html

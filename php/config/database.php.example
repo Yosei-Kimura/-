@@ -1,0 +1,49 @@
+<?php
+/**
+ * データベース設定テンプレート
+ * 
+ * このファイルを参考にして実際の環境設定を行ってください。
+ * 実際の認証情報は .env ファイルで管理されます。
+ * 
+ * 使用方法:
+ * 1. .env.example を .env にコピー
+ * 2. .env ファイルの値を実際の環境に合わせて編集
+ * 3. このファイルは変更不要（環境変数から自動読み込み）
+ */
+
+// このファイルは実際の設定値を含まないテンプレートです
+// 実際の設定は改善された database.php で環境変数から読み込まれます
+
+/*
+設定例:
+
+.env ファイルの内容例:
+---
+DB_HOST=mysql326.phy.lolipop.lan
+DB_NAME=LAA0956269-tanaoroshi
+DB_USER=LAA0956269
+DB_PASS=your-actual-password-here
+DB_CHARSET=utf8mb4
+ENVIRONMENT=production
+DEBUG_MODE=false
+---
+
+開発環境の場合:
+---
+DB_HOST=localhost
+DB_NAME=tanaoroshi_dev
+DB_USER=root
+DB_PASS=password
+DB_CHARSET=utf8mb4
+ENVIRONMENT=development
+DEBUG_MODE=true
+---
+*/
+
+// 実際の database.php では以下のような環境変数読み込みが実装されています:
+// $host = $_ENV['DB_HOST'] ?? 'localhost';
+// $dbname = $_ENV['DB_NAME'] ?? 'tanaoroshi';
+// $username = $_ENV['DB_USER'] ?? 'root';
+// $password = $_ENV['DB_PASS'] ?? '';
+
+?>
